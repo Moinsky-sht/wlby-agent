@@ -1,0 +1,17 @@
+{
+  "name": "wlby-agent",
+  "version": "0.1.0",
+  "description": "未来白杨智能体技能：随包 CLI、动态能力发现与 MCP 桥接",
+  "type": "module",
+  "bin": { "wlby-agent": "scripts/wlby-agent.mjs" },
+  "engines": { "node": ">=22" },
+  "files": ["SKILL.md", "README.md", "LICENSE", "scripts/wlby-agent.mjs"],
+  "scripts": {
+    "test": "node --test test/*.test.mjs",
+    "release:bundle": "node scripts/release-bundle.mjs"
+  },
+  "dependencies": { "mcp-remote": "0.15.1" },
+  "repository": { "type": "git", "url": "git+https://github.com/Moinsky-sht/wlby-agent.git" },
+  "homepage": "https://wlbycuc.cn",
+  "license": "MIT"
+}
