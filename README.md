@@ -96,6 +96,20 @@ node scripts/wlby-agent.mjs upload ./制作成果.mp3 --grant 授权任务编号
 }
 ```
 
+如果 `wlby-agent@0.1.0` 尚未发布，不能使用上面的 npx 命令。可用已发布的桥接工具，保留相同的唯一 MCP 地址（真实令牌只填宿主私有配置，不能共享）：
+
+```json
+{
+  "mcpServers": {
+    "wlby-agent": {
+      "command": "npx",
+      "args": ["-y", "mcp-remote@0.15.1", "https://wlbycuc.cn/api/agent/mcp", "--transport", "http-only", "--header", "Authorization:${WLBY_MCP_AUTHORIZATION}"],
+      "env": { "WLBY_MCP_AUTHORIZATION": "Bearer <你的访问令牌>" }
+    }
+  }
+}
+```
+
 stdio 仅在 npm 包及其依赖安装后可用，复用固定版本 `mcp-remote@0.15.1`；不自行实现另一套 MCP。凭据通过私有环境传入桥接子进程，不进入参数。技能直接调用 HTTP 不需启动 MCP 进程，也不需保持 WebSocket 长连接。
 
 ## 更新、卸载与持久性
