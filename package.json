@@ -1,6 +1,6 @@
 {
   "name": "wlby-agent",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "未来白杨智能体技能：随包 CLI、动态能力发现与 MCP 桥接",
   "type": "module",
   "bin": { "wlby-agent": "scripts/wlby-agent.mjs" },

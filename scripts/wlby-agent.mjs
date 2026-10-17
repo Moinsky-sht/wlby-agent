@@ -10,7 +10,7 @@ import { createRequire } from 'node:module'
 import { spawn } from 'node:child_process'
 import { pathToFileURL } from 'node:url'
 
-export const VERSION = '0.1.0'
+export const VERSION = '0.1.1'
 export const MCP_URL = 'https://wlbycuc.cn/api/agent/mcp'
 const tokenPattern = /^wlby_a_[a-f0-9]{16}_[A-Za-z0-9_-]{43}$/
 const maxResponseBytes = 32 * 1024 * 1024

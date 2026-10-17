@@ -7,7 +7,7 @@ import path from 'node:path'
 import { spawn } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import { createHash } from 'node:crypto'
-import { context, call, serverUrl, saveCredentials, upload, safeText } from '../scripts/wlby-agent.mjs'
+import { VERSION, context, call, serverUrl, saveCredentials, upload, safeText } from '../scripts/wlby-agent.mjs'
 
 // Deliberately synthetic credentials: no real account or authentication material is used.
 const fixtureToken = 'wlby_a_' + '0'.repeat(16) + '_' + 'x'.repeat(43)
@@ -63,12 +63,21 @@ test('client transport, private login, dynamic contracts and retries', async t =
     assert.ok(!(r.stdout + r.stderr).includes(fixtureToken))
     const stat = await fs.stat(path.join(home, 'credentials.json'))
     if (process.platform !== 'win32') assert.equal(stat.mode & 0o777, 0o600)
+    assert.deepEqual(requests.map(r => r.url), ['/api/agent/call/connection.status'])
   })
   await t.test('new processes reuse private credentials; environment tokens take precedence', async () => {
     assert.equal((await run(['doctor'], env)).code, 0)
     const r = await run(['doctor'], { ...env, WLBY_AGENT_TOKEN: fixtureToken.replace(/x$/, 'y') })
     assert.equal(r.code, 3)
     assert.equal(JSON.parse(r.stderr).code, 'INVALID_AGENT_TOKEN')
+  })
+  await t.test('connection checks and known calls do not prefetch capability lists or add redundant requests', async () => {
+    const start = requests.length
+    assert.equal((await run(['doctor'], env)).code, 0)
+    assert.equal((await run(['call', 'fixture.confirm'], env)).code, 0)
+    assert.deepEqual(requests.slice(start).map(r => r.url), [
+      '/api/agent/call/connection.status', '/api/agent/call/fixture.confirm',
+    ])
   })
   await t.test('live capability changes are returned without a client update', async () => {
     const a = await run(['search', '测试功能'], env), b = await run(['search', '测试功能'], env)
@@ -136,7 +145,7 @@ test('server addresses, credentials file safety and npm-style executable symlink
     const child = spawn(process.execPath, [path.join(dir, 'client.mjs'), '--version'])
     let out = ''; child.stdout.on('data', c => { out += c })
     await new Promise((r, j) => { child.once('error', j); child.once('close', r) })
-    assert.equal(JSON.parse(out).version, '0.1.0')
+    assert.equal(JSON.parse(out).version, VERSION)
     const file = path.join(dir, 'credentials.json')
     await fs.writeFile(file, JSON.stringify({ token: fixtureToken }), { mode: 0o644 })
     await assert.rejects(context({}, { WLBY_AGENT_HOME: dir }), e => e.code === 'UNSAFE_CREDENTIALS')

@@ -1,76 +1,45 @@
 # wlby-agent · 未来白杨智能体技能
 
-安装的是一个包含轻量 CLI 的技能包：`SKILL.md` 告诉智能体如何使用，`scripts/wlby-agent.mjs` 执行请求。CLI 和 MCP 均复用未来白杨服务器的权限、购买权益、积分、真实用户确认与操作日志。
+连接未来白杨后，智能体可按你的账号权限、购买权益和积分使用业务功能。支持远程 MCP 时直接连接；否则由智能体自动安装本技能及随附 CLI，无需你下载文件。
 
-## 发给智能体的安装提示词
+## 复制给智能体
 
-> 请阅读 https://github.com/Moinsky-sht/wlby-agent 的通用接入说明，帮我连接未来白杨。优先复用已有连接；若当前环境支持配置远程 MCP，优先使用 https://wlbycuc.cn/api/agent/mcp。否则在实际执行任务的电脑或云电脑上自动下载、校验并安装 wlby-agent 技能及随附客户端，不要让我手动下载或搬运文件。保留其他配置，引导我通过私有方式配置访问令牌，最后执行免费连接检测。不要回显令牌；需要刷新或新开任务时明确提示，不把下载或保存配置当作连接成功。
+> 请帮我连接未来白杨。先提示我提供访问令牌，优先使用你的私密输入或密钥设置，不要回显；已有可用授权时直接复用。支持远程 MCP 就直接连接 https://wlbycuc.cn/api/agent/mcp（Streamable HTTP，Bearer Token），无需下载或先读 GitHub。不能直接使用 MCP 时，才按 https://github.com/Moinsky-sht/wlby-agent 的说明自动安装固定版本的技能和客户端。收到令牌后完成配置，执行一次免费连接检测，告诉我实际连接的账号；保留其他设置，需要刷新或新开任务时说明。不要预先读取全部业务能力。
 
-## 通用接入顺序（供智能体执行）
+在[未来白杨个人设置](https://wlbycuc.cn/profile?tab=basic)创建访问令牌，等智能体提示后提供。令牌通常有效 30 天，可命名、重命名、撤销或删除；删除后立即失效，历史日志保留。若在普通聊天中提供了令牌，智能体不应复述；优先使用宿主的私密输入。
 
-先选择当前环境能实际使用的最短路径，不先下载所有东西：
+## 智能体执行顺序
 
-1. 已有可用未来白杨连接时，通过 `connection.status` 免费验证后复用，不重复安装或覆盖配置。
-2. 支持远程 MCP 且可配置时，优先使用唯一地址 `https://wlbycuc.cn/api/agent/mcp`，采用 Streamable HTTP 和 Bearer Token。只新增或更新名为 wlby-agent 的配置，保留其他服务器与用户设置；已有同名但不同地址的配置先报告冲突，不静默替换。使用宿主的私有认证机制，不能把真实 Token 放入公开配置或任务产物。宿主需要刷新或新开任务时明确提示；保存配置不能冒充当前会话已能调用。
-3. 只支持 command/args 时，可采用本文 npm/stdio 配置，按下面流程准备运行环境与私有授权。只有 npm 中确实存在指定版本时才使用 npx；不能将任意命令写进 MCP 配置。
-4. 没有 MCP 配置能力、但允许脚本执行与联网时，按下面流程自动安装 Skill 与随附 CLI，直接调用现有 HTTP 能力。不要求用户下载、上传或搬运文件。
-5. 既无法使用 MCP 又不能执行脚本的宿主，说明不支持的条件，不声称仅靠提示词已接入。只接受 OAuth、不支持本服务 Bearer 授权且无脚本能力的宿主也不能保证接入；本包不提供 OAuth。
+1. **取得授权**：复用本服务已有授权，或提示用户提供令牌。使用宿主私有密钥/认证位置；令牌不能进入命令参数、公开文件、产物或日志。
+2. **选最短连接路径**：已连接则复用；能配置远程 MCP 就使用上面的唯一地址，不安装 CLI。不能直接使用 MCP、但能执行脚本和联网时，才执行下方自动安装。只接受 OAuth 且不能执行脚本的宿主目前无法接入。
+3. **检测一次**：调用 `connection.status`，收到当前账号后才报告成功。保存配置、下载文件或安装 npm 包均不代表连接成功；如宿主必须刷新或新开任务才能加载，明确告诉用户。已有可用业务工具时直接使用，不为每次操作重新登录或检测。
 
-不把各产品的内部目录写死在本包，不为不同品牌复制教程。MCP 配置 JSON 的字段由宿主决定，下面是常见格式模板；支持直接填写 URL 的界面只需地址和私有 Token。
+功能由服务器动态提供：已知工具与参数直接调用；不确定时按需搜索、读取具体用法，不预读完整仓库或全部工具。业务权限、购买权益、积分、真实用户确认和日志由服务器统一执行。
 
-## 自动安装流程（仅在需要客户端时执行）
+<details>
+<summary>自动安装技能与 CLI（仅不能直接使用 MCP 时）</summary>
 
-1. **检查环境**：需要执行命令、写入自己的用户目录、访问 `https://wlbycuc.cn`，以及 Node.js 22 或更高版本。先运行 `node --version`。没有执行能力或外网被禁用时明确报告缺少能力，不声称已连接。手机遥控时安装到真正执行任务的云电脑，而不是手机。
-2. **下载固定版本**：从 [v0.1.0 Release](https://github.com/Moinsky-sht/wlby-agent/releases/tag/v0.1.0) 下载 `wlby-agent-0.1.0.zip` 与 `SHA256SUMS` 并核验 SHA256；GitHub 不可访问时由智能体从 [官方备用制品目录](https://wlbycuc.cn/integrations/wlby-agent/release.json) 取得同版 ZIP 地址和摘要。不要读取仓库外的凭据、下载未固定的远程脚本后直接执行，或用 sudo 修改全局环境。
-3. **安装技能**：通过当前宿主支持的“导入技能包／创建技能”机制安装该 ZIP，确认 `SKILL.md` 与 `scripts/wlby-agent.mjs` 一同保留。也可使用宿主支持的持久化技能目录；不猜测或重写所有智能体配置。由智能体完成下载、校验、解压与宿主注册，不要求用户下载或搬运文件。若宿主无法自动注册，可在本任务中读取 SKILL.md 并使用随附客户端，明确尚未持久注册；宿主禁止执行或联网时停止并说明限制。重复安装只更新同名技能包，不改用户凭据或其他技能；有本地修改时先保留副本。
-4. **授权**：在未来白杨个人设置创建并命名访问令牌。优先配置宿主私有密钥 `WLBY_AGENT_TOKEN`；无密钥入口时可使用客户端私有授权文件。不要回显 Token，不把它写进安装提示词、命令参数、仓库、共享文件或产物。
-5. **验证**：在技能目录运行 `node scripts/wlby-agent.mjs doctor`。只有服务器成功返回当前账号，才能报告连接成功；另行确认宿主是否已注册技能。新任务或重启后再验证一次，区分持久安装与仅本任务有效。
+以下步骤由智能体在实际执行任务的电脑或云电脑完成，手机只负责遥控。不要让用户下载、上传或搬运文件。
 
-### 缺少 Node.js 时
+1. 检查脚本执行、网络和 Node.js 22+。已有环境直接使用；缺少时按下方说明装到用户目录。
+2. 下载 [v0.1.1 Release](https://github.com/Moinsky-sht/wlby-agent/releases/tag/v0.1.1) 的 `wlby-agent-0.1.1.zip` 与 `SHA256SUMS`，校验 SHA256 后解压。GitHub 无法访问时，从[官网制品索引](https://wlbycuc.cn/integrations/wlby-agent/release.json)获取同一固定版本的 ZIP 与摘要。不要执行未固定版本的远程安装脚本。
+3. 按宿主支持的技能导入/创建机制注册，保留 `SKILL.md` 和 `scripts/wlby-agent.mjs`。没有自动注册能力时，可在当前任务读取本技能并使用 CLI，但必须说明尚未持久注册。只改本技能配置；更新前保留已有本地修改，不覆盖其他技能或凭据。
+4. 优先使用私有密钥环境变量 `WLBY_AGENT_TOKEN`，再运行一次 `node scripts/wlby-agent.mjs doctor`。也可用 `node scripts/wlby-agent.mjs auth login` 隐藏输入；该命令已检测连接，成功后不必再运行 `doctor`。无交互环境支持 `auth login --stdin`，秘密须通过受保护的标准输入传入，不能拼进 `echo` 或其他命令参数。
 
-优先使用宿主已有 Node.js 22+；无须重复安装。只能安装到自己的私有工具目录，不修改系统 PATH、其他工具或全局配置。
+CLI 私有授权文件默认位于用户目录 `.config/wlby-agent/credentials.json`（目录 700、文件 600；Windows 保持用户私有 ACL）。宿主有私有持久目录时可设置 `WLBY_AGENT_HOME`，不能指向共享项目或产物目录。环境变量优先于本地文件。
 
-- Linux/macOS：从 [Node.js 官方下载](https://nodejs.org/en/download) 选择当前系统、架构的受支持 LTS 压缩包，同时获取该版本 `SHASUMS256.txt`，验证摘要后解压至用户工具目录，使用其中 `bin/node` 的绝对路径。
-- Windows：从同一官方来源选择 Windows ZIP，核验摘要后解压至用户工具目录，使用其中 `node.exe` 的绝对路径。
+新任务只需确认原连接/技能和授权仍可用，不重复安装。临时云环境销毁后可能需要重新安装和授权；没有脚本执行或网络能力的纯聊天环境不能仅靠提示词完成接入。
 
-宿主禁止下载或执行时停止并说明原因。不要绕过组织策略或静默申请管理员权限。后续使用安装后的 Node 绝对路径，不依赖某个终端临时 PATH 能传到下一任务。
+### 缺少 Node.js
 
-## 授权与调用
+从 [Node.js 官方下载](https://nodejs.org/en/download)选择当前系统/架构的受支持 LTS 压缩包及该版本 `SHASUMS256.txt`，校验后解压到用户私有工具目录。Linux/macOS 使用其中 `bin/node`、Windows 使用 `node.exe` 的绝对路径；不使用 sudo、不改系统 PATH。宿主不允许下载或执行时说明限制，不绕过策略。
 
-本地隐藏输入（不显示输入内容）：
+</details>
 
-```sh
-node scripts/wlby-agent.mjs auth login
-node scripts/wlby-agent.mjs doctor
-```
+<details>
+<summary>高级 MCP 配置（手动配置时展开）</summary>
 
-云端优先通过密钥环境变量 `WLBY_AGENT_TOKEN` 授权，配置后直接运行 `doctor`。也可将秘密通过标准输入传入 `auth login --stdin`，不要使用包含真实 Token 的 `echo ...` 命令或命令行参数。私有文件默认在用户目录 `.config/wlby-agent/credentials.json`，目录权限 700、文件权限 600；Windows 还须保持当前用户目录的私有 ACL。可用 `WLBY_AGENT_HOME` 指定宿主认可的私有持久目录，不能设成共享项目或产物目录。
-
-环境变量优先于本地授权文件。Token 通常有效 30 天，权限与购买权益由服务器实时检查。`auth logout` 只移除此设备保存的授权；需要所有设备立即失效时到网站撤销。重命名不更换 Token。没有用户指令时不轮换、创建或撤销授权。
-
-先查服务器用法，再办理不熟悉的业务：
-
-```sh
-node scripts/wlby-agent.mjs search "最近答题"
-node scripts/wlby-agent.mjs describe learning.recentAnswers
-node scripts/wlby-agent.mjs call learning.recentAnswers --input params.json
-```
-
-名称和参数已知时直接 `call`，不强制先搜索。返回 JSON；需要用户确认时展示服务器返回的链接，不执行站内确认接口。网络错误包含 `requestId`；重试同一请求使用 `--request-id`，不要盲目重试或改变参数。余额不足和无权限不是网络错误，不能换入口绕过。
-
-上传使用限定任务会话，文件不经过模型上下文：
-
-```sh
-node scripts/wlby-agent.mjs upload ./制作成果.mp3 --grant 授权任务编号
-```
-
-以服务器当前制作指南为准。教师提交进入待审核流程，不能因此直接发布。全部调用沿用网站积分规则，并进入智能体日志。
-
-## npm 与 MCP（可选）
-
-**以 npm 实际存在的发布版本为准。** GitHub 技能 ZIP 独立可用，不依赖 npm 发布。版本发布后可运行 `npx -y wlby-agent@0.1.0 doctor` 等同名命令；npm 安装不等于宿主已注册 Skill，仍需上述技能安装步骤。
-
-支持远程 MCP 时无需安装 CLI，常见配置如下（在宿主私有设置替换令牌占位符）：
+优先将下面配置填入宿主的**私有 MCP 设置**，把占位符替换成访问令牌，不把含真实令牌的配置发到聊天、仓库或共享文件。字段以宿主支持的格式为准；只需填写 URL 的界面使用同一地址和 Bearer Token 即可。
 
 ```json
 {
@@ -83,20 +52,9 @@ node scripts/wlby-agent.mjs upload ./制作成果.mp3 --grant 授权任务编号
 }
 ```
 
-唯一地址为 `https://wlbycuc.cn/api/agent/mcp`，使用 Bearer Token。只接受 command/args 的客户端可在完成私有授权后使用：
+只新增本服务配置，保留其他服务器；已有同名但地址不同的配置时先报告冲突。保存后由宿主加载，再运行免费连接检测。
 
-```json
-{
-  "mcpServers": {
-    "wlby-agent": {
-      "command": "npx",
-      "args": ["-y", "wlby-agent@0.1.0", "mcp"]
-    }
-  }
-}
-```
-
-如果 `wlby-agent@0.1.0` 尚未发布，不能使用上面的 npx 命令。可用已发布的桥接工具，保留相同的唯一 MCP 地址（真实令牌只填宿主私有配置，不能共享）：
+**只支持 command/args 时**，可使用固定版本桥接。将环境变量中的占位符填在宿主私有设置，真实凭据不会写入命令参数：
 
 ```json
 {
@@ -110,17 +68,30 @@ node scripts/wlby-agent.mjs upload ./制作成果.mp3 --grant 授权任务编号
 }
 ```
 
-stdio 仅在 npm 包及其依赖安装后可用，复用固定版本 `mcp-remote@0.15.1`；不自行实现另一套 MCP。凭据通过私有环境传入桥接子进程，不进入参数。技能直接调用 HTTP 不需启动 MCP 进程，也不需保持 WebSocket 长连接。
+此路径需要 Node.js/npm 和联网下载桥接依赖。已经安装含依赖的 `wlby-agent` npm 包时也可使用 `wlby-agent mcp`；GitHub Skill ZIP 本身不含桥接依赖，直接使用 CLI 无需安装依赖或启动 MCP 进程。普通 HTTP/MCP 接入不需要飞书或 WebSocket。
 
-## 更新、卸载与持久性
+</details>
 
-- 按原方式安装已校验的新版本，不静默追随 main 或自动覆盖本地修改。更新技能不变更授权文件。
-- 卸载通过宿主技能管理移除本技能；需要时执行 `auth logout`，再按原方式卸载 npm 包。不要清理其他技能、配置或共享缓存。
-- 云环境销毁后，本地文件与授权可能消失。优先采用宿主持久化技能与密钥机制；没有时只能承诺当前任务可用，下次重新安装和授权。
-- 没有执行和联网能力的纯聊天产品，不能仅靠导入文字技能获得后台调用能力。
+<details>
+<summary>CLI 调用、更新与维护</summary>
 
-## 开发与发布
+以下命令在技能目录运行，其他目录使用脚本绝对路径。名称、参数已知时直接调用；仅在不熟悉业务时搜索和查看用法：
 
-Node.js 22+；运行 `npm ci --ignore-scripts`、`npm test`。Linux/macOS 上执行 `npm run release:bundle`（打 ZIP 需 Python 3，用户运行技能不需 Python）。发布包只含公共客户端、技能和说明；不包含业务源码、资料、账号或密钥。npm 发布需要维护者登录，未发布版本不能宣传成已可安装。
+```sh
+node scripts/wlby-agent.mjs search "用户需求关键词"
+node scripts/wlby-agent.mjs describe <返回的能力名称>
+node scripts/wlby-agent.mjs call <能力名称> --input params.json
+```
 
-MIT License。服务端能力、账号权益及内容授权不随客户端开源。
+`--input -` 支持从标准输入读取 JSON。服务器要求确认时展示确认链接及影响，等待真实用户处理；不代用户访问站内确认接口。写入失败不盲目重试，同一操作按服务器用法复用返回的 `requestId`（`--request-id`），不改变参数或扩大名单。
+
+上传先读取获授权任务的服务器指南，再使用 `upload <文件路径> --grant <任务编号>`；文件直接上传，不进入模型上下文。提交、审核、发布仍分别遵守原权限。无权限、无购买权益或积分不足时说明原因，不换入口绕过。
+
+- 更新：安装已校验的固定版本，不静默追随 main，不覆盖本地修改或授权。
+- 退出：`auth logout` 只移除本设备保存的授权；使所有设备失效须在网站撤销令牌。重命名不更换令牌。
+- 卸载：通过宿主移除本技能，按原方式卸载可选 npm 包；不清理其他配置。
+- 发布：Node.js 22+，运行 `npm ci --ignore-scripts`、`npm test`。`npm run release:bundle` 生成白名单 ZIP、摘要与版本索引（打包需 Python 3，使用技能不需 Python）。GitHub Release 可独立分发；npm 是可选渠道，未确认发布的版本不提供 npx 安装命令。
+
+MIT License。客户端开源不包含服务端业务源码、用户资料或内容授权。
+
+</details>
